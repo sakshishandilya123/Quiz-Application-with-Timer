@@ -1,0 +1,100 @@
+import java.util.*;
+import java.util.concurrent.*;
+
+public class QuizApplication {
+
+    static class Question {
+        String question;
+        String[] options;
+        String correctAnswer;
+
+        public Question(String question, String[] options, String correctAnswer) {
+            this.question = question;
+            this.options = options;
+            this.correctAnswer = correctAnswer;
+        }
+    }
+
+    private static List<Question> questions = new ArrayList<>();
+    private static int score = 0;
+    private static int totalQuestions = 0;
+
+    public static void main(String[] args) {
+       
+        initializeQuestions();
+
+       
+        Scanner scanner = new Scanner(System.in);
+
+        
+        for (int i = 0; i < questions.size(); i++) {
+            Question currentQuestion = questions.get(i);
+            totalQuestions++;
+            System.out.println("Question " + (i + 1) + ": " + currentQuestion.question);
+
+           
+            for (int j = 0; j < currentQuestion.options.length; j++) {
+                System.out.println((j + 1) + ". " + currentQuestion.options[j]);
+            }
+
+            
+            boolean answerSubmitted = getAnswerWithinTime(scanner, currentQuestion);
+
+            if (answerSubmitted) {
+                System.out.println("Correct Answer: " + currentQuestion.correctAnswer);
+            } else {
+                System.out.println("Time is up! Correct Answer: " + currentQuestion.correctAnswer);
+            }
+
+            System.out.println();
+        }
+
+      
+        System.out.println("Quiz Over!");
+        System.out.println("Your final score: " + score + "/" + totalQuestions);
+        scanner.close();
+    }
+
+    private static void initializeQuestions() {
+        questions.add(new Question("What is the capital of France?", 
+                                   new String[]{"Berlin", "Madrid", "Paris", "Rome"}, "Paris"));
+        questions.add(new Question("Which programming language is known as the language of the web?", 
+                                   new String[]{"Java", "Python", "JavaScript", "C++"}, "JavaScript"));
+        questions.add(new Question("Who developed the theory of relativity?", 
+                                   new String[]{"Newton", "Einstein", "Tesla", "Galileo"}, "Einstein"));
+        questions.add(new Question("What is the largest planet in our solar system?", 
+                                   new String[]{"Earth", "Mars", "Jupiter", "Saturn"}, "Jupiter"));
+        questions.add(new Question("Which year did the Titanic sink?", 
+                                   new String[]{"1900", "1912", "1920", "1930"}, "1912"));
+    }
+
+    private static boolean getAnswerWithinTime(Scanner scanner, Question question) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<String> future = executor.submit(() -> {
+            System.out.print("Select an option (1-4): ");
+            int selectedOption = scanner.nextInt();
+            if (selectedOption >= 1 && selectedOption <= 4) {
+                return question.options[selectedOption - 1];
+            } else {
+                return "";
+            }
+        });
+
+        try {
+            // Set a time limit of 10 seconds for answering the question
+            String userAnswer = future.get(10, TimeUnit.SECONDS);
+            if (userAnswer.equals(question.correctAnswer)) {
+                score++;
+            }
+            return !userAnswer.isEmpty(); // returns true if the answer is submitted within time
+        } catch (TimeoutException e) {
+            System.out.println("Time is up! Moving to next question.");
+            return false; // If time is up, move to the next question
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+}
